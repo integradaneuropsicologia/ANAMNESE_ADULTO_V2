@@ -304,7 +304,7 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1>Anamnese adulto</h1>
+      <h1>Anamnese Adulto</h1>
   
 
       <div id="statusBox" class="status loading">Validando acesso...</div>
@@ -327,13 +327,10 @@
 
     const TEST_CODE_FIXO = "ANAMNESE_ADULTO_V2";
 
-    
-
-    
    const AREA_PACIENTE_URL = "https://integradaneuropsicologia.github.io/area-do-paciente-v2/";
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const FREQ5   = ["Nunca/Raramente","Pouca frequência","Regular","Muito frequente", "Sempre/Quase sempre"];
+    const FREQ5   = ["Nunca/Raramente","Pouca frequência","Regular","Muito frequente", "Sempre/Quase sempre", "Não se aplica"];
     const SEVER4  = ["Não","Leve","Moderada","Grave", "Não se aplica"];
     const YESNO   = ["Sim","Não", "Não se aplica"];
     const YNP     = ["Sim","Não","Não sei", "Não se aplica"];
