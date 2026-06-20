@@ -396,8 +396,8 @@
 
     const PATIENT_PROFILE_QUESTIONS = [
       { name: "perfil_nome", profileField: "nome", type: "text", section: "Dados cadastrais", text: "Nome completo", required: true },
-      { name: "perfil_whatsapp", profileField: "whatsapp", type: "tel", section: "Dados cadastrais", text: "WhatsApp", placeholder: "+5541999999999", required: true },
-      { name: "perfil_whatsapp_alternativo", profileField: "whatsapp_alternativo", type: "tel", section: "Dados cadastrais", text: "WhatsApp alternativo", placeholder: "+5541999999999", required: true },
+      { name: "perfil_whatsapp", profileField: "whatsapp", type: "tel", section: "Dados cadastrais", text: "WhatsApp", placeholder: "Ex.: +55 41 99999-0000", required: true },
+      { name: "perfil_whatsapp_alternativo", profileField: "whatsapp_alternativo", type: "tel", section: "Dados cadastrais", text: "WhatsApp alternativo", placeholder: "Opcional. Ex.: +55 41 99999-0000", required: false },
       { name: "perfil_whatsapp_alternativo_recebe_mensagens", profileField: "whatsapp_alternativo_recebe_mensagens", type: "checkbox", section: "Dados cadastrais", text: "Mensagens no WhatsApp alternativo", checkboxText: "Também desejo receber mensagens neste WhatsApp alternativo.", required: false },
       { name: "perfil_sexo", profileField: "sexo", type: "select", section: "Dados cadastrais", text: "Sexo", options: ["", ...SEX_OPTIONS], required: true },
       { name: "perfil_data_nascimento", profileField: "data_nascimento", type: "date", section: "Dados cadastrais", text: "Data de nascimento", required: true },
@@ -2377,6 +2377,67 @@ function scrollToRow(row){
     document.body.scrollTop = y;
   }, 80);
 }
+
+function onlyDigits(value = "") {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function normalizeWhatsAppForDelivery(value = "") {
+  const rawValue = String(value || "").trim();
+  const digits = onlyDigits(rawValue);
+
+  if (!digits) return "";
+  if (rawValue.startsWith("+")) return digits;
+  if (digits.startsWith("00") && digits.length > 2) return digits.slice(2);
+  if (digits.startsWith("55")) return digits;
+  if (digits.length === 10 || digits.length === 11) return `55${digits}`;
+
+  return digits;
+}
+
+function getWhatsAppValidationError(value, required = false) {
+  const rawValue = String(value || "").trim();
+  const digits = onlyDigits(rawValue);
+  const deliveryPhone = normalizeWhatsAppForDelivery(rawValue);
+
+  if (!rawValue) return required ? "Informe o WhatsApp." : "";
+  if (/[A-Za-z]/.test(rawValue)) {
+    return "Use somente números, DDI, DDD e sinais como +, espaço ou parênteses.";
+  }
+  if (!digits) return "Informe um número de WhatsApp válido.";
+  if (deliveryPhone.length < 10 || deliveryPhone.length > 15) {
+    return "Informe o WhatsApp com DDI e DDD. Ex.: +55 41 99999-0000.";
+  }
+  if (deliveryPhone.startsWith("0")) {
+    return "Informe o número em formato internacional, sem zero inicial. Ex.: +55 41 99999-0000.";
+  }
+  if (/^(\d)\1+$/.test(deliveryPhone)) {
+    return "Informe um número de WhatsApp válido.";
+  }
+
+  return "";
+}
+
+function setCustomFieldValidity(formEl, fieldName, message) {
+  const field = formEl.querySelector(`[name="${CSS.escape(fieldName)}"]`);
+  if (!field || typeof field.setCustomValidity !== "function") return;
+  field.setCustomValidity(message || "");
+}
+
+function validateWhatsAppFields(formEl) {
+  const whatsapp = formEl.querySelector('[name="perfil_whatsapp"]');
+  const altWhatsapp = formEl.querySelector('[name="perfil_whatsapp_alternativo"]');
+  const altReceives = formEl.querySelector('[name="perfil_whatsapp_alternativo_recebe_mensagens"]');
+
+  const whatsappError = getWhatsAppValidationError(whatsapp?.value || "", true);
+  const altRequired = Boolean(altReceives?.checked);
+  const altError = getWhatsAppValidationError(altWhatsapp?.value || "", altRequired);
+
+  setCustomFieldValidity(formEl, "perfil_whatsapp", whatsappError);
+  setCustomFieldValidity(formEl, "perfil_whatsapp_alternativo", altError);
+
+  return !whatsappError && !altError;
+}
     /**************************************************************
      * ENVIO DO FORMULÁRIO (EXEMPLO)
      * Aqui você coloca seu save real.
@@ -2388,6 +2449,7 @@ function scrollToRow(row){
 
   // 1) validação antes de “enviar”
   clearInvalidUI(formEl);
+  validateWhatsAppFields(formEl);
 
   // (opcional) validações nativas (email, pattern etc.)
  if (!formEl.checkValidity()) {
@@ -2530,6 +2592,8 @@ function setupLiveInvalidCleanup(questions){
   const formEl = $("testForm");
 
   const handler = (e) => {
+    validateWhatsAppFields(formEl);
+
     const row = e.target.closest(".row");
     if (!row) return;
 
